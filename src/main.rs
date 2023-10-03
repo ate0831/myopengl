@@ -15,7 +15,9 @@ mod vertex;
 use shader::Shader;
 use vertex::Vertex;
 
-//use sdl2::pixels::Color;
+//im_str!マクロを使用するために追加
+#[macro_use]
+extern crate imgui;
 
 #[allow(dead_code)]
 type Point3 = cgmath::Point3<f32>;
@@ -80,11 +82,27 @@ fn main() {
         VERTEX_NUM as i32,
     );
 
+    //init imgui
+    let mut imgui_context = imgui::Context::create();
+    imgui_context.set_ini_filename(None);               //DearImGuiにはソフト終了時に自動でウィジェットの位置などを保存する機能があるため、それを無効化する。
+
+    //init imgui sdl2
+    let mut imgui_sdl2_context = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, &window);
+    let renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context,|s|{
+        video_subsystem.gl_get_proc_address(s) as _
+    });
+
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     //閉じるまたはEscapeキー押下で終了
     'running: loop {
         for event in event_pump.poll_iter() {
+            //Imgui由来のイベントはImgui側で処理するため無視する
+            imgui_sdl2_context.handle_event(&mut imgui_context, &event);
+            if imgui_sdl2_context.ignore_event(&event){
+                continue;
+            }
+
             match event {
                 Event::Quit {..}
                 | Event::KeyDown {
@@ -135,6 +153,23 @@ fn main() {
             shader.set_mat4(c_str!("uProjection"), &projection_matrix);
 
             vertex.draw();
+            //SDL2における画面サイズやマウス、キーボードの状態などをImguiと調整する
+            imgui_sdl2_context.prepare_frame(
+                imgui_context.io_mut(),
+                &window,
+                &event_pump.mouse_state(),
+            );
+
+            //ウィジェットの生成を助けるUI構造体を生成する
+            let ui = imgui_context.frame();
+            imgui::Window::new(im_str!("Imformation"))
+                .size([300.0,200.0],imgui::Condition::FirstUseEver)
+                .build(&ui,||{});
+
+            //SDL2とImGuiの間でマウスの位置やマウスのカーソルの情報を調整する
+            imgui_sdl2_context.prepare_render(&ui, &window);
+            //SDL2ウィンドウに描画する
+            renderer.render(ui);
 
             window.gl_swap_window();
         }
