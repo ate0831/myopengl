@@ -53,6 +53,7 @@ fn main() {
         .window("SDL",WINODW_WIDTH,WINODW_HEIGHT)
         .opengl()
         .position_centered()    //ウィンドウをディスプレイ中央に配置する
+        .resizable()
         .build()
         {
             Ok(window) => window,
@@ -165,23 +166,19 @@ fn main() {
             imgui::Window::new(im_str!("Imformation"))
                 .size([300.0,200.0],imgui::Condition::FirstUseEver)
                 .build(&ui,||{
-                    ui.text(im_str!("Hello world"));
+                    ui.text(im_str!("OpenGL Test App Ver 1.0"));
+                    ui.separator();
+                    ui.text(im_str!("FPS: {:.1}",ui.io().framerate));
+                    let display_size = ui.io().display_size;
+                    ui.text(format!(
+                        "Display Size: ({:.1},{:.1})",
+                        display_size[0],display_size[1]
+                    ));
                     let mouse_pos = ui.io().mouse_pos;
                     ui.text(format!(
-                        "Mouse position: ({:.1},{:.1}):",
+                        "Mouse Position: ({:.1},{:.1})",
                         mouse_pos[0],mouse_pos[1]
                     ));
-                    imgui::ProgressBar::new(mouse_pos[0]/( WINODW_WIDTH as f32 ))
-                        .size([200.0,20.0])
-                        .overlay_text(im_str!("Progress!"))
-                        .build(&ui);
-                    let arr = [0.6f32, 0.2f32, 1.0f32, 0.5f32, 0.92f32, 0.1f32, 0.2f32];
-                    ui.plot_lines(im_str!("lines"),&arr)
-                        .graph_size([200.0,40.0])
-                        .build();
-                    ui.plot_histogram(im_str!("histgram"),&arr)
-                        .graph_size([200.0,40.0])
-                        .build();
                 });
 
             //SDL2とImGuiの間でマウスの位置やマウスのカーソルの情報を調整する
